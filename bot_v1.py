@@ -1,48 +1,55 @@
 import logging
-from telegram.ext import Application, MessageHandler, filters, CommandHandler
+
+
 from config import bot_token
-
-
-# Запускаем логгирование
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG
+from telegram import Update
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters
 )
 
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
 
-async def echo(update, context):
-    await update.message.reply_text(
-        update.message.text if update.message.text[0] != '/' else 'неизвестная команда')
-
-
-async def start(update, context):
-    """Отправляет сообщение когда получена команда /start"""
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /start is issued"""
     user = update.effective_user
     await update.message.reply_html(
-        rf"Привет {user.mention_html()}! Я {}. Напишите мне что-нибудь, и я пришлю это назад!",
+        rf"Привет {user.mention_html()}! Я {123}. Напишите мне что-нибудь, и я пришлю это назад!",
     )
 
 
-async def help_command(update, context):
-    """Отправляет сообщение когда получена команда /help"""
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /help is issued"""
     await update.message.reply_text("Я пока не умею помогать... Я только ваше эхо.")
 
 
-def main():
-    application = Application.builder().token(bot_token).build()
-    text_handler = MessageHandler(filters.TEXT, echo)
-    bot_name = application.bot.get_me()
-    print(bot_name)
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Echo the user message"""
+    await update.message.reply_text(
+        update.message.text if update.message.text[0] != '/' else 'неизвестная команда'
+    )
 
+
+def main() -> None:
+    """Start the bot"""
+
+    application = Application.builder().token(bot_token).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(text_handler)
 
+    application.add_handler(MessageHandler(filters.TEXT, echo))
 
     application.run_polling()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
