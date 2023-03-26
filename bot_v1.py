@@ -35,7 +35,9 @@ async def start(update: Update,
                 context: ContextTypes.DEFAULT_TYPE) -> None:
     """Отправлят сообщение по команде /start"""
     user = update.effective_user
-    button_list = [["Help", "Game"], ["Cancel"]]
+    button_list = [["Talk", "Game"],
+                   ["Help"],
+                   ["Cancel"]]
 
     await update.message.reply_html(
         f"Привет {user.mention_html()}! \
@@ -46,7 +48,7 @@ async def start(update: Update,
             input_field_placeholder='What are we do?'
         )
     )
-    return 0
+    return CHOOSING
 
 
 async def help_command(update: Update,
@@ -70,18 +72,36 @@ async def cancel(update: Update,
                  context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
+    button_list = [['Start']]
     logger.info("User %s canceled the conversation.", user.first_name)
     await update.message.reply_text(
-        "Пока-пока! Надеюсь, ещё увидимся!", reply_markup=ReplyKeyboardRemove()
+        "Пока-пока! Надеюсь, ещё увидимся!"
+        " Для повторного обращения ко мне напишите /start",
+        reply_markup=ReplyKeyboardRemove()
     )
+
     return ConversationHandler.END
 
 
-async def game_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def game_choice(update: Update,
+                      context: ContextTypes.DEFAULT_TYPE) -> int:
     """Запрос информации о выбранном предопределенном выборе."""
     text = update.message.text
     context.user_data["choice"] = text
-    await update.message.reply_text(f"Ты выбрал {text.lower()}? Я работаю над этим)!")
+    await update.message.reply_text(
+        f"Ты выбрал {text.lower()}? Я работаю над этим)!"
+    )
+
+
+async def talk_with_ai(update: Update,
+                      context: ContextTypes.DEFAULT_TYPE):
+    """Тут
+    будет
+    подключение у давинчи
+    чата GPT"""
+    await update.message.reply_html(
+        f"{update.effective_user.mention_html()}, извини, но я пока не умею говорить(",
+    )
 
 
 def main() -> None:
@@ -90,14 +110,17 @@ def main() -> None:
     # extbot = telegram.ext.ExtBot(token=bot_token)
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[CommandHandler("start" or "^(Start)$", start)],
         states={
             CHOOSING: [
                 MessageHandler(
-                    filters.Regex("^(Help)$"), help_command
+                    filters.Regex("^(Talk)$"), talk_with_ai
                 ),
                 MessageHandler(
                     filters.Regex("^(Game)$"), game_choice
+                ),
+                MessageHandler(
+                    filters.Regex("^(Help)$"), help_command
                 ),
             ],
         },
