@@ -1,10 +1,11 @@
 import logging
 
-import telegram.ext
+#import telegram.ext
 
 from config import bot_token, bot_name
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
+    ConversationHandler,
     Application,
     CommandHandler,
     ContextTypes,
@@ -33,14 +34,18 @@ async def start(update: Update,
                 context: ContextTypes.DEFAULT_TYPE) -> None:
     """Отправлят сообщение по команде /start"""
     user = update.effective_user
+    button_list = [["/help", "hehe"], ["/cancel"]]
+
     await update.message.reply_html(
         f"Привет {user.mention_html()}! \
 Я {bot_name}. Напиши мне что-нибудь, и я пришлю это назад!",
+        reply_markup=ReplyKeyboardMarkup(
+            build_menu(button_list),
+            one_time_keyboard=True,
+            input_field_placeholder='What are we do?'
+        )
     )
-
-    button_list = [["col1", "col2"], ["row2"]]
-    reply_markup = ReplyKeyboardMarkup(build_menu(button_list))
-    await update.message.reply_text(text="Добавлено меню возможностей)", reply_markup=reply_markup)
+    return 1
 
 
 async def help_command(update: Update,
@@ -61,19 +66,37 @@ async def echo(update: Update,
 
 async def unknown(update: Update,
                   context: ContextTypes.DEFAULT_TYPE):
-    '''Неизвестные комманды'''
+    """Неизвестные комманды"""
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Прости, я не понимаю, что ты хочешь(."
     )
 
 
+async def cancel(update: Update,
+                 context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Cancels and ends the conversation."""
+    user = update.message.from_user
+    logger.info("User %s canceled the conversation.", user.first_name)
+    await update.message.reply_text(
+        "Bye! I hope we can talk again some day.", reply_markup=ReplyKeyboardRemove()
+    )
+    return ConversationHandler.END
+
+
 def main() -> None:
     """Запуск бота"""
     application = Application.builder().token(bot_token).build()
-    extbot = telegram.ext.ExtBot(token=bot_token)
+    # extbot = telegram.ext.ExtBot(token=bot_token)
 
-    application.add_handler(CommandHandler("start", start))
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={},
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+
+    application.add_handler(conv_handler)
+
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.COMMAND, unknown))
     application.add_handler(MessageHandler(filters.TEXT, echo))
