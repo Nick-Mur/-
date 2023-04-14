@@ -1,24 +1,69 @@
 import telebot
-from telebot import types
-from config import bot_token
-import data.game.characters as characters
-import data.game.weapons as weapons
-import data.game.armors as armors
 import time
+import sqlite3
+import data.game.armors as armors
+import data.game.weapons as weapons
+import data.game.characters as characters
+from telebot import types
+from data.config import bot_token
 
-# region Const
-MOVE = 0
-HERO_CLASS = None
-hero = characters.Peasant(health=100, weapon=weapons.start_sword, name='Мистер Крестьянин', defence=5,
-                          armor=armors.peasants_robe)
-monster = characters.Enemy(health=25, weapon=weapons.monster_fists, name='Монстр')
+
+# region DB
+def create_nickname_table():
+    conn = sqlite3.connect('data/database_talesworlds/data_talesworlds.sql')
+    cur = conn.cursor()
+
+    cur.execute('''CREATE TABLE IF NOT EXISTS users ( 
+    user_id primary key, 
+    nickname
+    )''')
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def insert_in_database(data: tuple, column: tuple, database: str, table: str):
+    """
+    Вставляет data в column в файл database в таблицу table
+    """
+    conn = sqlite3.connect(f'data/database_talesworlds/{database}')
+    cur = conn.cursor()
+
+    cur.execute(f'INSERT INTO {table} {column} VALUES {data}', )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def delete_in_database(data, column: str, database: str, table: str):
+    """
+    Удаляет data в column в файл database в таблицу table
+    """
+    conn = sqlite3.connect(f'data/database_talesworlds/{database}')
+    cur = conn.cursor()
+    try:
+        cur.execute(f'DELETE FROM {table} WHERE {data} = {column}')
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+    cur.close()
+    conn.close()
+
 
 # endregion
 
-# region telegram bot
+# telegram bot
 bot = telebot.TeleBot(token=bot_token)
+create_nickname_table()
+
+# Game
+MOVE = 0
+HERO_CLASS = None
+hero = characters.hero
+monster = characters.monster
 
 
+# region start_block
 @bot.message_handler(commands=['start'])
 def telegram_start(message):
     markup = types.ReplyKeyboardMarkup()
@@ -30,6 +75,9 @@ def telegram_start(message):
         f'Зови меня сказочником или рассказчиком, сейчас я тебе расскажу одну историю. Готов ли ты?',
         reply_markup=markup
     )
+
+
+# endregion
 
 
 @bot.message_handler(content_types=['text'])
@@ -48,10 +96,6 @@ def telegram_handler(message):
         bot.register_next_step_handler(message, start_game)
 
 
-# endregion
-
-# region game
-
 def move():
     global MOVE
     MOVE += 1
@@ -61,8 +105,23 @@ def move():
 
 @bot.message_handler(content_types=['text'])
 def start_game(message):
+    delete_in_database(
+        data=message.from_user.id,
+        column='user_id',
+        database='data_talesworlds.sql',
+        table='users'
+    )
+
     if message.text.isalpha():
         hero.name = message.text
+
+    insert_in_database(
+        data=(message.from_user.id, hero.name),
+        column=('user_id', 'nickname'),
+        database='data_talesworlds.sql',
+        table='users'
+    )
+
     bot.send_message(
         message.chat.id,
         'В этих краях давно водились монстры, разбойники и прочая нечисть.\n'
@@ -97,12 +156,18 @@ def start_game(message):
 
 @bot.message_handler(content_types=['text'])
 def fight_with_monster(message):
+    # region buttons
     remove = types.ReplyKeyboardRemove()
     markup = types.ReplyKeyboardMarkup()
+    check_self_status_btn = types.KeyboardButton('Проверить своё состояние')
     check_inventory_btn = types.KeyboardButton('Проверить инвентарь')
     hit_btn = types.KeyboardButton('Ударить')
+    check_enemy_status_btn = types.KeyboardButton('Проверить состояние противника')
+    markup.add(check_self_status_btn)
     markup.add(check_inventory_btn)
     markup.add(hit_btn)
+    markup.add(check_enemy_status_btn)
+    # endregion
     if message.text == 'Подойти':
         bot.send_message(
             message.chat.id,
@@ -112,10 +177,51 @@ def fight_with_monster(message):
         bot.send_message(
             message.chat.id,
             f'Что же ты сделаешь, {hero.name}?',
-            reply_markup=remove
+            reply_markup=markup
         )
+    elif message.text == 'Проверить своё состояние':
+        bot.send_message(
+            message.chat.id,
+            hero.check_status()
+        )
+    elif message.text == 'Ударить':
+        damage = hero.attack(monster)
+        bot.send_message(
+            message.chat.id,
+            f'Ты нанёс {damage} урона! Теперь у {monster.name} {monster.health} жизни и {monster.defence} брони.'
+        )
+        if monster.health > 0:
+            damage = monster.attack(hero)
+            bot.send_message(
+                message.chat.id,
+                f'{monster.name} нанёс {damage} урона! Теперь у тебя {hero.health} жизни и {hero.defence} брони.'
+            )
+        else:
+            bot.send_message(
+                message.chat.id,
+                f'Монстр повержен.',
+                reply_markup=remove
+            )
+            bot.register_next_step_handler(message, pursuit)
+    elif message.text == 'Проверить инвентарь':
+        text = list()
+        text += hero.weapon.check_weapon() + ['\n'] + hero.armor.check_armor()
+        text = ''.join(text)
+        bot.send_message(
+            message.chat.id,
+            text
+        )
+    elif message.text == 'Проверить состояние противника':
+        bot.send_message(
+            message.chat.id,
+            monster.check_status()
+        )
+    bot.register_next_step_handler(message, fight_with_monster)
 
 
-# endregion
+@bot.message_handler(content_types=['text'])
+def pursuit(message):
+    pass
+
 
 bot.infinity_polling()

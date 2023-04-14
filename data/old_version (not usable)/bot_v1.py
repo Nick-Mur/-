@@ -1,5 +1,5 @@
 import logging
-from config import bot_token, bot_name
+from data.config import bot_token, bot_name
 from telegram import (
     Update,
     KeyboardButton,
