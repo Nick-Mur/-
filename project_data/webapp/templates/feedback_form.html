@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Talesword: Написание отзыва
+{% endblock %}
+
+{% block body %}
+<h1>Написание своего отзыва (через форму)</h1>
+<form method="post">
+	<textarea name="text" id="feedback" class="form-control" placeholder="Введите отзыв"></textarea><br>
+	<input type="submit" class="btn btn-success" value="Отправить">
+</form>
+{% endblock %}
