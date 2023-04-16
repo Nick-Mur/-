@@ -1,12 +1,14 @@
 from flask import Flask, render_template, request
-from datetime import datetime
 from project_data.webapp.data.users import User
+from datetime import datetime
+from sqlalchemy import select
+from project_data.webapp.data import db_session
 
 app = Flask(__name__)
 
 
 def insert_feedback_in_table(userid, feedback):
-    from project_data.webapp.data import db_session
+    global db_session
     db_session.global_init("db/data_talesworlds.db")
     user = User()
     user.userID = 789456
@@ -46,7 +48,8 @@ def db_viewer_nickname(userid):
     from project_data.webapp.data import db_session
     db_session.global_init("project_data/webapp/db/data_talesworlds.db")
     db_sess = db_session.create_session()
-    if not userid in db_sess.query(User).filter(User.userID == userid):
+    user = db_sess.query(User).filter(User.userID == userid)
+    for _ in user:
         return False  # Если сработает - значит не регистрируем
     return True
 
@@ -81,4 +84,5 @@ def edit_feedback():
 
 
 if __name__ == "__main__":
+    db_viewer_nickname(1)
     app.run(debug=True)

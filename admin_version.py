@@ -5,7 +5,6 @@ import project_data.game.special_items as special_items
 import project_data.game.characters as characters
 from telebot import types
 from project_data.config import bot_token
-from telebot.types import WebAppInfo
 from project_data.webapp.index import db_viewer_nickname
 from project_data.webapp.index import insert_nickname_in_table
 from project_data.webapp.index import edit_nickname_in_table
@@ -31,6 +30,8 @@ monster = characters.monster
 enemy = monster
 first_move = True
 way = 'pacifist'
+
+
 # endregion
 
 
