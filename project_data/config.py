@@ -1,6 +1,6 @@
 import requests
 
-bot_token = '5994116282:AAFUNHwYujayM1K2u9nU4CNSzLxWBh3qcug'
+bot_token = '5994116282:AAHZP-VlffiYk9AijzRYOM69d2tACoWCMaQ'
 MAIN_URL = f'https://api.telegram.org/bot{bot_token}'
 
 r = requests.get(f'{MAIN_URL}/getMe').json()
