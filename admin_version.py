@@ -5,9 +5,9 @@ import project_data.game.special_items as special_items
 import project_data.game.characters as characters
 from telebot import types
 from project_data.config import bot_token
-from project_data.webapp.index import db_viewer_nickname
-from project_data.webapp.index import insert_nickname_in_table
-from project_data.webapp.index import edit_nickname_in_table
+from project_data.webapp.server import db_viewer_nickname
+from project_data.webapp.server import insert_nickname_in_table
+from project_data.webapp.server import edit_nickname_in_table
 
 
 # region DB

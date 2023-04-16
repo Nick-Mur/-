@@ -2,24 +2,24 @@ from flask import Flask, render_template, request
 from project_data.webapp.data.users import User
 from datetime import datetime
 from sqlalchemy import select
-from project_data.webapp.data import db_session
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'tales_secret_world_key'
 
 
 def insert_feedback_in_table(userid, feedback):
-    global db_session
+    from data import db_session
     db_session.global_init("db/data_talesworlds.db")
-    user = User()
-    user.userID = 789456
-    user.user_feedback = 'feedback'
     db_sess = db_session.create_session()
-    db_sess.add(user)
+    user = db_sess.query(User).filter(User.userID == userid).first()
+    user.user_feedback = feedback
+    user.created_date = datetime.now()
     db_sess.commit()
+    print('Ник изменён')
 
 
 def insert_nickname_in_table(userid, nickname):
-    from project_data.webapp.data import db_session
+    from data import db_session
     db_session.global_init("db/data_talesworlds.db")
     user = User()
     user.userID = userid
@@ -31,7 +31,7 @@ def insert_nickname_in_table(userid, nickname):
 
 
 def edit_nickname_in_table(userid, nickname):
-    from project_data.webapp.data import db_session
+    from data import db_session
     db_session.global_init("db/data_talesworlds.db")
     db_sess = db_session.create_session()
     user = db_sess.query(User).filter(User.userID == userid).first()
@@ -45,7 +45,7 @@ def db_viewer_nickname(userid):
     """
     Для register_nickname
     """
-    from project_data.webapp.data import db_session
+    from data import db_session
     db_session.global_init("project_data/webapp/db/data_talesworlds.db")
     db_sess = db_session.create_session()
     user = db_sess.query(User).filter(User.userID == userid)
@@ -56,12 +56,26 @@ def db_viewer_nickname(userid):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    with open('static/text/updates.txt', 'r', encoding="utf-8") as f:
+        updates_data = f.readlines()[0]
+    return render_template('index.html',
+                           updates=updates_data
+                           )
 
 
 @app.route('/feedbacks')
 def feedbacks():
-    return render_template('feedback.html')
+    from data import db_session
+    db_session.global_init("db/data_talesworlds.db")
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).filter(User.user_feedback != None)
+    feedback_list = []
+    for i in user:
+        print(i.userID)
+        feedback_list.append({'user_id': i.userID, 'feedback': i.user_feedback})
+    return render_template('feedback.html',
+                           feedback_created=True,
+                           feedback=feedback_list)
 
 
 @app.route('/feedbacks/write', methods=['POST', 'GET'])
@@ -69,8 +83,6 @@ def write_feedback():
     if request.method == 'POST':
         insert_feedback_in_table(1, 1)
         feedback_text = request.form['feedback']
-
-
     else:
         return render_template('feedback_form.html')
 
@@ -84,5 +96,4 @@ def edit_feedback():
 
 
 if __name__ == "__main__":
-    db_viewer_nickname(1)
     app.run(debug=True)
