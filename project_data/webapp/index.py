@@ -1,12 +1,12 @@
 from flask import Flask, render_template, request
+from datetime import datetime
 from project_data.webapp.data.users import User
-from project_data.webapp.data import db_session
 
 app = Flask(__name__)
 
 
 def insert_feedback_in_table(userid, feedback):
-    global db_session
+    from project_data.webapp.data import db_session
     db_session.global_init("db/data_talesworlds.db")
     user = User()
     user.userID = 789456
@@ -28,6 +28,17 @@ def insert_nickname_in_table(userid, nickname):
     print('Ник утверждён')
 
 
+def edit_nickname_in_table(userid, nickname):
+    from project_data.webapp.data import db_session
+    db_session.global_init("db/data_talesworlds.db")
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).filter(User.userID == userid).first()
+    user.nickname = nickname
+    user.created_date = datetime.now()
+    db_sess.commit()
+    print('Ник изменён')
+
+
 def db_viewer_nickname(userid):
     """
     Для register_nickname
@@ -35,7 +46,7 @@ def db_viewer_nickname(userid):
     from project_data.webapp.data import db_session
     db_session.global_init("project_data/webapp/db/data_talesworlds.db")
     db_sess = db_session.create_session()
-    if not db_sess.query(User).filter(User.userID == userid):
+    if not userid in db_sess.query(User).filter(User.userID == userid):
         return False  # Если сработает - значит не регистрируем
     return True
 
@@ -70,5 +81,4 @@ def edit_feedback():
 
 
 if __name__ == "__main__":
-    db_viewer_nickname(1)
     app.run(debug=True)
