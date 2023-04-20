@@ -93,7 +93,8 @@ class Peasant:
         elif type(self.weapon) == weapons.Staff:
             damage = self.weapon.cast(text, other, self)
         elif type(self.weapon) == weapons.MaceWithShield:
-            damage = self.weapon.series_attacks(text)
+            damage, block = self.weapon.series_attacks(text)
+            self.defence += block
         if other.defence == 0:
             other.health -= damage
         else:
